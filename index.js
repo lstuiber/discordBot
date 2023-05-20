@@ -3,8 +3,10 @@ const path = require("node:path");
 const { Player } = require("discord-player");
 const { Client, Events, Collection, GatewayIntentBits } = require("discord.js");
 const { token } = require("./config.json");
-
+const { useQueue } = require("discord-player");
+const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 const { useTimeline } = require("discord-player");
+const { AudioFilters } = require("discord-player");
 
 /* OVERALL IDEA OF WHAT TO DO
     Need to first set up client instance to be able to 
@@ -19,6 +21,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages /* Other intents */,
   ],
 });
+client.config = require("./config");
 //adding commands property on the instance lets us access commands in other files
 client.commands = new Collection();
 let powerFlag = {
@@ -65,28 +68,25 @@ for (const file of eventFiles) {
 // use the following code to reference this player in other files
 // const { useMasterPlayer } = require("discord-player");
 // const player = useMasterPlayer();
-const player = new Player(client);
+const player = new Player(client, client.config.discordPlayer);
 
 // this event is emitted whenever discord-player starts to play a track
 player.events.on("playerStart", async (queue, track) => {
   const { timestamp, volume, paused, pause, resume, setVolume, setPosition } =
     useTimeline(queue.metadata.guildId);
   await pause();
+  const song = useQueue(queue.metadata.guild.id);
   // we will later define queue.metadata object while creating the queue
   await queue.metadata.channel.send(`Started playing **${track.title}**!`);
   if (powerFlag.value) {
-    console.log("Power Flag plays");
-
     let powerStart =
       Math.floor(Math.random() * (timestamp.total.value - 60000)) + 1;
-    console.log(timestamp);
+
     await setPosition(powerStart);
     await resume();
     let powerEnd = powerStart + 60000;
-    console.log("Guild ID " + queue.node);
-    console.log("PowerHour Start: " + powerStart);
-    console.log("PowerHour end: " + powerEnd);
-    console.log("Song Length: " + timestamp.total.value);
+    await delay(10000);
+    song.node.skip();
   } else {
     await resume();
   }
